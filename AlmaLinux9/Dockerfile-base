@@ -34,7 +34,7 @@ RUN source /opt/setup_spack.sh && \
     echo "spack env activate /key4hep-spack/environments/key4hep-release-opt" >> ${HOME}/setup_env.sh && \
     echo "spack env status" >> ${HOME}/setup_env.sh
 
-# Concretizing the stack reusing system packages as external
+# Concretizing the stack reusing system packages
 RUN source ${HOME}/setup_env.sh && \
     spack concretize --reuse
 
