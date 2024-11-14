@@ -31,10 +31,12 @@ RUN source /opt/setup_spack.sh && \
 RUN source /opt/setup_spack.sh && \
     spack env activate /key4hep-spack/environments/key4hep-release-opt && \
     echo "source /opt/setup_spack.sh" > ${HOME}/setup_env.sh && \
-    echo "spack env activate /key4hep-spack/environments/key4hep-release-opt" >> ${HOME}/setup_env.sh && \
+    echo "cd /key4hep-spack/environments/key4hep-release-opt" >> ${HOME}/setup_env.sh && \
+    echo "spack env activate ." >> ${HOME}/setup_env.sh && \
+    echo "cd -" >> ${HOME}/setup_env.sh && \
     echo "spack env status" >> ${HOME}/setup_env.sh
 
-# Concretizing the stack reusing system packages
+# Concretizing the stack reusing system packages as external
 RUN source ${HOME}/setup_env.sh && \
     spack concretize --reuse
 
