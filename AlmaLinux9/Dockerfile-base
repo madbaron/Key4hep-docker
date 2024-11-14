@@ -1,0 +1,59 @@
+###############################################################################
+#  Repository: ${REPOSITORY}/key4hep-base
+#  Tag:        ${VERSION}-alma9
+###############################################################################
+
+ARG VERSION=release
+ARG REPOSITORY=madbaron
+FROM ${REPOSITORY}/key4hep-spack:${VERSION}-alma9
+
+# Adding repositories: Key4hep + MuColl
+ARG KEY4HEP_COMMIT=f6b94a45e2c9e3e414d75606927a56da59c4f00a
+
+RUN source /opt/setup_spack.sh && \
+    REPOPATH=${SPACK_ROOT}/var/key4hep-spack && \
+    git clone https://github.com/key4hep/key4hep-spack ${REPOPATH} && \
+    if [ -n "${KEY4HEP_COMMIT}" ]; then \
+      cd ${REPOPATH}; \
+      git checkout ${KEY4HEP_COMMIT}; \
+    fi
+
+# Apply our patches to spack
+COPY apply_patches.sh ./apply_patches.sh
+RUN source /opt/setup_spack.sh && \
+    ./apply_patches.sh ${SPACK_ROOT}/var/key4hep-spack
+
+# Add the package repositories
+RUN source /opt/setup_spack.sh && \
+    spack repo add --scope system ${SPACK_ROOT}/var/key4hep-spack
+
+# Create the release environment
+RUN source /opt/setup_spack.sh && \
+    spack env activate /key4hep-spack/environments/key4hep-release-opt && \
+    echo "source /opt/setup_spack.sh" > ${HOME}/setup_env.sh && \
+    echo "spack env activate /key4hep-spack/environments/key4hep-release-opt" >> ${HOME}/setup_env.sh && \
+    echo "spack env status" >> ${HOME}/setup_env.sh
+
+# Concretizing the stack reusing system packages as external
+RUN source ${HOME}/setup_env.sh && \
+    spack concretize --reuse
+
+# Installing fragments of dependency tree in separate layers for cached debugging
+ENV SPACK_INSTALL_OPTS "--only-concrete --no-add --fail-fast"
+
+RUN source ${HOME}/setup_env.sh && \
+    spack spec -NIt && \
+    spack install ${SPACK_INSTALL_OPTS} && \
+    spack clean -a
+
+RUN source ${HOME}/setup_env.sh && \
+    echo "source ${SPACK_ENV}/.spack-env/view/setup.sh" > /opt/setup_k4.sh && \
+    echo "alias setup_k4=\"source /opt/setup_k4.sh\"" >> /etc/profile.d/aliases.sh
+
+# Setting up users to be used for the local environment setup
+RUN useradd --shell /bin/bash --create-home k4
+USER k4
+WORKDIR /home/k4
+
+ENTRYPOINT ["/bin/bash", "--login"]
+
